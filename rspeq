@@ -1,6 +1,100 @@
 from charm.toolbox.ecgroup import G
 from charm.toolbox.integergroup import IntegerGroupQ, integer
 from charm.toolbox.PKEnc import ElGamal
+from charm.toolbox.PKEnc import PKEnc
+from charm.toolbox.pairinggroup import G1, GT
+
+from collections import namedtuple
+from utils.matrix import MM, MatrixDistribution
+from ps.benign import BenignPS
+FFHR21_SKB = namedtuple('FFHR21_SKB', ['a', 'f', 'F', 'psk'])
+FFHR21_PKB = namedtuple(
+    'FFHR21_PKB', ['D', 'aTD', 'fTD', 'FTD', 'FDx', 'ppk'])
+FFHR21_SKA = namedtuple('FFHR21_SKA', ['a', 'f', 'F', 'psk'])
+FFHR21_PKA = namedtuple(
+    'FFHR21_PKA', ['D', 'aTD', 'fTD', 'FTD', 'FDx', 'ppk'])
+FFHR21_CIPHER_A = namedtuple('FFHR21_CIPHER_A', ['u', 'p', 'y', 'pi'])
+FFHR21_CIPHER_B = namedtuple('FFHR21_CIPHER_B', ['u', 'p', 'y', 'pi'])
+
+def keygen_A(n, d, mscheme, dist):
+    a, f = (mscheme.sample(n) for i in range(2))
+    F = mscheme.sample(n, n+1)
+    D = mscheme.sample_from(dist)
+    D1 = D >> G1
+    ppk, psk = BenignPS(mscheme).gen(D1)
+    ska = FFHR21_SKA(a=a, f=f, F=F, psk=psk)
+
+    aTD = a.T() * D
+    Dx = D | aTD
+
+    pka = FFHR21_PKA(D=D1,
+                   aTD=aTD >> G1,
+                   fTD=(f.T() * D) >> GT,
+                   FTD=(F.T() * D) >> G1,
+                   FDx=(F * Dx) >> G1,
+                   ppk=ppk
+                   )
+    return pka, ska
+
+def keygen_B(n, d, mscheme, dist, pka):
+    a, f = (mscheme.sample(n) for i in range(2))
+    F = mscheme.sample(n, n+1)
+    D = mscheme.sample_from(dist)
+    D1 = D >> G1
+    ppk, psk = BenignPS(mscheme).gen(D1)
+    skb = FFHR21_SKB(a=a, f=f, F=F, psk=psk)
+
+    aTD = a.T() * D
+    Dx = D | aTD
+
+    pkb = FFHR21_PKB(D=D1,
+                   aTD=aTD >> G1,
+                   fTD=(f.T() * D) >> GT,
+                   FTD=(F.T() * D) >> G1,
+                   FDx=(F * Dx) >> G1,
+                   ppk=pka
+                   )
+    return pkb, skb
+
+def encrypt_A(pka, msg):
+    n, d = pka.D.shape
+    r = pka.mscheme.sample(d)
+    u = pka.D * r
+
+    pi = BenignPS(pka.mscheme).prove(pka.ppk, u, r)
+    p = pka.aTD * r + msg
+    x = u | p
+    y = pka.fTD * r + (x.pair_with(pka.FTD) * r)
+
+    return FFHR21_CIPHER_A(u=u, p=p, y=y, pi=pi)
+
+def encrypt_B(pkb, ca):
+    n, d = pkb.D.shape
+    r = pkb.mscheme.sample(d)
+    u = pkb.D * r
+
+    pi = BenignPS(pkb.mscheme).prove(pkb.ppk, u, r)
+    p = pkb.aTD * r + ca
+    x = u | p
+    y = pkb.fTD * r + (x.pair_with(pkb.FTD) * r)
+    return FFHR21_CIPHER_B(u=u, p=p, y=y, pi=pi)
+
+def decrypt_A(pka, ska, ca):
+    x = ca.u | ca.p
+    msg = ca.p - ska.a.T() * ca.u
+    y = (ska.f.T() * ca.u >> GT) + (ska.F * x).pair_with(ca.u)
+    b1 = y == ca.y
+    b2 = BenignPS(pka.mscheme).verify(ska.psk, ca.u, ca.pi)
+    return msg if b1 and b2 else None
+
+def decrypt_B(pkb, skb, cb):
+    x = cb.u | cb.p
+    ca = cb.p - skb.a.T() * cb.u
+    y = (skb.f.T() * cb.u >> GT) + (skb.F * x).pair_with(cb.u)
+    b1 = y == cb.y
+    b2 = BenignPS(pkb.mscheme).verify(skb.psk, cb.u, cb.pi)
+    return ca if b1 and b2 else None
+
 
 def rando(pk, c, r):
     g, h = pk
