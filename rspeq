@@ -1,0 +1,61 @@
+from charm.toolbox.ecgroup import G
+from charm.toolbox.integergroup import IntegerGroupQ, integer
+from charm.toolbox.PKEnc import ElGamal
+
+def rando(pk, c, r):
+    g, h = pk
+    c0, c1 = c
+    return (c0 + r * h, c1 + r * g)
+
+def rspeq_enc(pk, m, r):
+    g, h = pk
+    return (r * h + m, r * g)
+
+def rspeq_flow_1(pk0, pk1, c0, c1):
+    group = G()
+    r_1 = group.random()
+    r_2 = group.random()
+
+    rm = group.random(G)
+
+    c0_0, c0_1 = c0
+    c1_0, c1_1 = c1
+
+    pk0_0, pk0_1 = pk0
+    pk1_0, pk1_1 = pk1
+
+    r_1_times_pk0_1 = group.mul(r_1, pk0_1)
+    r_2_times_pk1_1 = group.mul(r_2, pk1_1)
+
+    c0_0_plus_rm = group.add(c0_0, rm)
+    c1_0_plus_rm = group.add(c1_0, rm)
+
+    c0_prime = (group.add(c0_0_plus_rm, r_1_times_pk0_1), group.add(c0_1, r_1_times_pk0_0))
+    c1_prime = (group.add(c1_0_plus_rm, r_2_times_pk1_1), group.add(c1_1, r_2_times_pk1_0))
+
+    return c0_prime, c1_prime, rm, r_1, r_2
+
+def rspeq_flow_2():
+    return bool(integer.getRandom(nbits=1))
+
+def rspeq_flow_3(b, r0, r_0, r1, r_1):
+    if b:
+        return r_0, r_1
+    else:
+        return r0 + r_0, r1 + r_1
+
+def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
+    g, h = pk0
+    c0_0, c0_1 = c0
+    c_0_0, c_0_1 = c_0
+    c1_0, c1_1 = c1
+    c_1_0, c_1_1 = c_1
+
+    if b:
+        c00 = rando(pk0, (group.add(c0_0, rm), c0_1), rx)
+        c11 = rando(pk1, (group.add(c1_0, rm), c1_1), ry)
+        return c_0_0 == c00[0] and c_0_1 == c00[1] and c_1_0 == c11[0] and c_1_1 == c11[1]
+    else:
+        c_0_0_minus_rx_times_pk0_1 = group.sub(c_0_0, group.mul(rx, h))
+        c_1_0_minus_ry_times_pk1_1 = group.sub(c_1_0, group.mul(ry, h))
+        return c_0_0_minus_rx_times_pk0_1 == c_1_0_minus_ry_times_pk1_1
