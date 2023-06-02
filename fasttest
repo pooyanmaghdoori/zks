@@ -1,0 +1,80 @@
+from charm.toolbox.ecgroup import G
+from charm.toolbox.integergroup import IntegerGroupQ, integer
+from charm.toolbox.PKEnc import ElGamal
+from charm.toolbox.PKEnc import PKEnc
+from charm.toolbox.pairinggroup import G1, GT
+import random
+
+# ElGamal encryption with randomness r
+def rspeq_enc(pk, m, r):
+    return (r * pk[1] + m, r * pk[0])
+
+# First move
+def rspeq_flow_1(pk0, pk1, c0, c1):
+    r_1 = random.randint(1, pk0[0].order())
+    r_2 = random.randint(1, pk0[0].order())
+
+    rm = random.randint(1, pk0[0].order())
+
+    return (rando(pk0, (c0[0] + rm, c0[1]), r_1), rando(pk1, (c1[0] + rm, c1[1]), r_2), rm, r_1, r_2)
+
+# Second move
+def rspeq_flow_2():
+    return random.choice([True, False])
+
+# Third move
+def rspeq_flow_3(b, r0, r_0, r1, r_1):
+    if b:
+        return (r_0, r_1)
+    else:
+        return (r0 + r_0, r1 + r_1)
+
+# Fourth move
+def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
+    if b:
+        c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
+        c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
+        return c_0 == c00 and c_1 == c11
+    else:
+        return c_0[0] - (rx * pk0[1]) == c_1[0] - (ry * pk1[1])
+
+def rspeq_key_init_test(should_succeed):
+    g = G()
+    h = G()
+    sk = G()
+
+    # Generate a key pair
+    if should_succeed:
+        h = sk * g
+    else:
+        h = g
+
+    return h == sk * g
+
+def do_fast_test(should_succeed):
+    pk0 = G()
+    pk1 = G()
+    m0 = pk0[0].order().zero() * pk0[0]
+    m1 = pk0[0].order().one() * pk0[1]
+    if should_succeed:
+        m1 = m0
+
+    r0 = random.randint(1, pk0[0].order())
+    r1 = random.randint(1, pk0[0].order())
+
+    c0 = rspeq_enc(pk0, m0, r0)
+    c1 = rspeq_enc(pk1, m1, r1)
+
+    bo = True
+    i = 0
+    while i < 128 and bo:
+        c_0, c_1, rm, r_0, r_1 = rspeq_flow_1(pk0, pk1, c0, c1)
+
+        b = rspeq_flow_2()
+
+        rx, ry = rspeq_flow_3(b, r0, r_0, r1, r_1)
+
+        bo = rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm)
+
+        i += 1
+    return bo
