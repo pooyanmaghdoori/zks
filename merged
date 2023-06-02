@@ -1,0 +1,141 @@
+
+
+def rando(pk, c, r):
+    g, h = pk
+    c0, c1 = c
+    return (c0 + r * h, c1 + r * g)
+
+def rspeq_enc(pk, m, r):
+    g, h = pk
+    return (r * h + m, r * g)
+
+def rspeq_flow_1(pk0, pk1, c0, c1):
+    group = G()
+    r_1 = group.random()
+    r_2 = group.random()
+
+    rm = group.random(G)
+
+    c0_0, c0_1 = c0
+    c1_0, c1_1 = c1
+
+    pk0_0, pk0_1 = pk0
+    pk1_0, pk1_1 = pk1
+
+    r_1_times_pk0_1 = group.mul(r_1, pk0_1)
+    r_2_times_pk1_1 = group.mul(r_2, pk1_1)
+
+    c0_0_plus_rm = group.add(c0_0, rm)
+    c1_0_plus_rm = group.add(c1_0, rm)
+
+    c0_prime = (group.add(c0_0_plus_rm, r_1_times_pk0_1), group.add(c0_1, r_1_times_pk0_0))
+    c1_prime = (group.add(c1_0_plus_rm, r_2_times_pk1_1), group.add(c1_1, r_2_times_pk1_0))
+
+    return c0_prime, c1_prime, rm, r_1, r_2
+
+def rspeq_flow_2():
+    return bool(integer.getRandom(nbits=1))
+
+def rspeq_flow_3(b, r0, r_0, r1, r_1):
+    if b:
+        return r_0, r_1
+    else:
+        return r0 + r_0, r1 + r_1
+
+def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
+    g, h = pk0
+    c0_0, c0_1 = c0
+    c_0_0, c_0_1 = c_0
+    c1_0, c1_1 = c1
+    c_1_0, c_1_1 = c_1
+
+    if b:
+        c00 = rando(pk0, (group.add(c0_0, rm), c0_1), rx)
+        c11 = rando(pk1, (group.add(c1_0, rm), c1_1), ry)
+        return c_0_0 == c00[0] and c_0_1 == c00[1] and c_1_0 == c11[0] and c_1_1 == c11[1]
+    else:
+        c_0_0_minus_rx_times_pk0_1 = group.sub(c_0_0, group.mul(rx, h))
+        c_1_0_minus_ry_times_pk1_1 = group.sub(c_1_0, group.mul(ry, h))
+        return c_0_0_minus_rx_times_pk0_1 == c_1_0_minus_ry_times_pk1_1
+
+# Merge with the previous code
+
+def keygen_A(n, d, mscheme, dist):
+    a, f = (mscheme.sample(n) for i in range(2))
+    F = mscheme.sample(n, n+1)
+    D = mscheme.sample_from(dist)
+    D1 = D >> G1
+    ppk, psk = BenignPS(mscheme).gen(D1)
+    ska = FFHR21_SKA(a=a, f=f, F=F, psk=psk)
+
+    aTD = a.T() * D
+    Dx = D | aTD
+
+    pka = FFHR21_PKA(D=D1,
+                   aTD=aTD >> G1,
+                   fTD=(f.T() * D) >> GT,
+                   FTD=(F.T() * D) >> G1,
+                   FDx=(F * Dx) >> G1,
+                   ppk=ppk
+                   )
+    return pka, ska
+
+def keygen_B(n, d, mscheme, dist, pka):
+    a, f = (mscheme.sample(n) for i in range(2))
+    F = mscheme.sample(n, n+1)
+    D = mscheme.sample_from(dist)
+    D1 = D >> G1
+    ppk, psk = BenignPS(mscheme).gen(D1)
+    sk = FFHR21_SKB(a=a, f=f, F=F, psk=psk)
+
+    aTD = a.T() * D
+    Dx = D | aTD
+
+    pkb = FFHR21_PKB(D=D1,
+                   aTD=aTD >> G1,
+                   fTD=(f.T() * D) >> GT,
+                   FTD=(F.T() * D) >> G1,
+                   FDx=(F * Dx) >> G1,
+                   ppk=pka
+                   )
+    return pkb, sk
+
+def encrypt(pka, msg):
+    n, d = self.n, self.d
+    r = self.mscheme.sample(d)
+    u = pka.D * r
+
+    pi = BenignPS(self.mscheme).prove(pka.ppk, u, r)
+    p = pka.aTD * r + msg
+    x = u | p
+    y = pka.fTD * r + (x.pair_with(pka.FTD) * r)
+
+    return FFHR21_CIPHER_A(u=u, p=p, y=y, pi=pi)
+
+def encrypt(pkb, ca):
+    ca = convertTuple(FFHR21_CIPHER_A)
+    n, d = self.n, self.d
+    r = self.mscheme.sample(d)
+    u = pkb.D * r
+
+    pi = BenignPS(self.mscheme).prove(pkb.ppk, u, r)
+    p = pkb.aTD * r + ca
+    x = u | p
+    y = pkb.fTD * r + (x.pair_with(pkb.FTD) * r)
+    return FFHR21_CIPHER_B(u=u, p=p, y=y, pi=pi)
+
+def decrypt(pkb, skb, cb):
+    x = cb.u | cb.p
+    ca = cb.p - skb.a.T() * cb.u
+    y = (skb.f.T() * cb.u >> GT) + (skb.F * x).pair_with(cb.u)
+    b1 = y == cb.y
+    b2 = BenignPS(self.mscheme).verify(skb.psk, cb.u, cb.pi)
+    return ca if b1 and b2 else None
+
+def decrypt(pka, ska, ca):
+    x = ca.u | ca.p
+    msg = ca.p - ska.a.T() * ca.u
+    y = (ska.f.T() * ca.u >> GT) + (ska.F * x).pair_with(ca.u)
+    b1 = y == ca.y
+    b2 = BenignPS(self.mscheme).verify(ska.psk, ca.u, ca.pi)
+    return msg if b1 and b2 else None
