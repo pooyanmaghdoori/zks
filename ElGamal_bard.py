@@ -21,7 +21,7 @@ def rspeq_flow_1(pk0, pk1, c0, c1):
     r1 = group.random()
     r2 = group.random()
     rm = group.random()
-    return rando(pk0, (c0.0 + rm, c0.1), r1), rando(pk1, (c1.0 + rm, c1.1), r2), rm, r1, r2
+    return rando(pk0, (c0.0 + rm, c0.1), r1), rando(pk1, (c1.0 + rm, c1.1), r2), rm, r1, r2)
 
 ##Second move of the RSPEQ protocol
 def rspeq_flow_2():
