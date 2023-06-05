@@ -1,9 +1,10 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
+from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
 import random
 
 # Generate key pair
 def crs_gen():
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup('SS512')
     g = group.random(G1)
     sk = group.random(ZR)
     h = sk * g
@@ -12,17 +13,17 @@ def crs_gen():
 
 #Add randomness to a point
 def rando(pk, c, r):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup('SS512')
     return (c[0] + r * pk[1], c[1] + r * pk[0])
 
 # ElGamal encryption with randomness r
 def rspeq_enc(pk, m, r):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup('SS512')
     return (r * pk[1] + m, r * pk[0])
 
 # First move of the protocol
 def rspeq_flow_1(pk0, pk1, c0, c1):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup('SS512')
     r_1 = group.random(ZR)
     r_2 = group.random(ZR)
     rm = group.random(G1)
@@ -41,7 +42,7 @@ def rspeq_flow_3(b, r0, r_0, r1, r_1):
 
 # Fourth move of the protocol
 def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup('SS512')
     if b:
         c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
         c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
@@ -51,7 +52,7 @@ def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
 
 # Test functions
 def rspeq_key_init_test(should_succeed):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup(curve='SS512')
     # Generate a key pair
     (g, h), sk = crs_gen()
 
@@ -61,7 +62,7 @@ def rspeq_key_init_test(should_succeed):
         return h == g
 
 def do_fast_test(should_succeed):
-    group = PairingGroup(curve='MNT224')
+    group = PairingGroup(curve='SS512')
     # Generate a key pair
     pk0, _ = crs_gen()
     pk1, _ = crs_gen()
