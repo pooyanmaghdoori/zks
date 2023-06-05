@@ -1,5 +1,4 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
-from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
 import random
 
 # Generate key pair
