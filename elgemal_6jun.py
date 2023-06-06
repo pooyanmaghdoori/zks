@@ -1,6 +1,4 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
-import random
-
 
 def crs_gen():
     group = PairingGroup('SS512')
@@ -25,6 +23,7 @@ def rspeq_flow_1(pk0, pk1, c0, c1):
     return (rando(pk0, (c0[0] + rm, c0[1]), r_1), rando(pk1, (c1[0] + rm, c1[1]), r_2), rm, r_1, r_2)
 
 def rspeq_flow_2():
+    import random
     return random.choice([True, False])
 
 def rspeq_flow_3(b, r0, r_0, r1, r_1):
@@ -85,3 +84,15 @@ def success():
 
 def fail():
     return do_fast_test(False)
+
+if __name__ == '__main__':
+    print("Testing rspeq_key_init_test:")
+    assert rspeq_ki_success() is True
+    assert rspeq_ki_fail() is False
+
+    print("Testing do_fast_test:")
+    assert success() is True
+    assert fail() is False
+
+    print("All tests passed successfully!")
+
