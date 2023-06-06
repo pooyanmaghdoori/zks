@@ -1,11 +1,11 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
+import random
 
 def crs_gen():
     group = PairingGroup('SS512')
     g = group.random(G1)
     sk = group.random(ZR)
     h = sk * g
-
     return ((g, h), sk)
 
 def rando(pk, c, r):
@@ -23,7 +23,6 @@ def rspeq_flow_1(pk0, pk1, c0, c1):
     return (rando(pk0, (c0[0] + rm, c0[1]), r_1), rando(pk1, (c1[0] + rm, c1[1]), r_2), rm, r_1, r_2)
 
 def rspeq_flow_2():
-    import random
     return random.choice([True, False])
 
 def rspeq_flow_3(b, r0, r_0, r1, r_1):
