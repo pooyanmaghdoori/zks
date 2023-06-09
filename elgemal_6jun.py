@@ -41,7 +41,6 @@ def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
         print(c11)
         print(c_1)
         return c_0 == c00 and c_1 == c11
-        
     else:
         return c_0[0] - (rx * pk0[1]) == c_1[0] - (ry * pk1[1])
         
