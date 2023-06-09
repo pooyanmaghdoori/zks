@@ -1,4 +1,4 @@
-from charm.toolbox.pairinggroup import PairingGroup, ZR, G1
+from charm.toolbox.pairinggroup import PairingGroup, G1, ZR
 import random
 
 # Generate key pair
@@ -6,19 +6,22 @@ def crs_gen():
     group = PairingGroup('MNT224')
     g = group.random(G1)
     sk = group.random(ZR)
-    h = sk * g
+    h = g ** sk
 
     return ((g, h), sk)
 
 # Add randomness to a point
 def rando(pk, c, r):
     group = PairingGroup('MNT224')
-    return (c[0] + r * pk[1], c[1] + r * pk[0])
+    return (c[0] + (pk[1] ** r), c[1] + (pk[0] ** r))
 
 # ElGamal encryption with randomness r
 def rspeq_enc(pk, m, r):
     group = PairingGroup('MNT224')
-    return (r * pk[1] + m, r * pk[0])
+    c1 = pk[0] ** r
+    c2 = (pk[1] ** r) * m
+
+    return c1, c2
 
 # First move of the protocol
 def rspeq_flow_1(pk0, pk1, c0, c1):
@@ -42,10 +45,13 @@ def rspeq_flow_3(b, r0, r_0, r1, r_1):
 # Fourth move of the protocol
 def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
     group = PairingGroup('MNT224')
-    c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
-    c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
-    return c_0 == c00 and c_1 == c11
-    
+    if b:
+        c00 = rando(pk0, (c0[0] + (rm ** rx), c0[1]), rx)
+        c11 = rando(pk1, (c1[0] + (rm ** ry), c1[1]), ry)
+        return c_0 == c00 and c_1 == c11
+    else:
+        return c_0[0] - ((rx * pk0[1]) ** group.order()) == c_1[0] - ((ry * pk1[1]) ** group.order())
+
 # Test functions
 def rspeq_key_init_test(should_succeed):
     group = PairingGroup('MNT224')
