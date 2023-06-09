@@ -42,13 +42,10 @@ def rspeq_flow_3(b, r0, r_0, r1, r_1):
 # Fourth move of the protocol
 def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
     group = PairingGroup('MNT224')
-    if b:
-        c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
-        c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
-        return c_0 == c00 and c_1 == c11
-    else:
-        return c_0[0] - (rx * pk0[1]) == c_1[0] - (ry * pk1[1])
-
+    c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
+    c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
+    return c_0 == c00 and c_1 == c11
+    
 # Test functions
 def rspeq_key_init_test(should_succeed):
     group = PairingGroup('MNT224')
