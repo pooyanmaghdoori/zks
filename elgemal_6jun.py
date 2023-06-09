@@ -35,11 +35,13 @@ def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
     if b:
         c00 = rando(pk0, (c0[0] + rm, c0[1]), rx)
         c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
-        return c_0 == c00 and c_1 == c11
         print("first statement")
+        return c_0 == c00 and c_1 == c11
+        
     else:
-        return c_0[0] - (rx * pk0[1]) == c_1[0] - (ry * pk1[1])
         print("second statement")
+        return c_0[0] - (rx * pk0[1]) == c_1[0] - (ry * pk1[1])
+        
         
 def rspeq_key_init_test(should_succeed):
     group = PairingGroup('SS512')
