@@ -37,6 +37,10 @@ def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
         c11 = rando(pk1, (c1[0] + rm, c1[1]), ry)
         print(c00)
         print(c_0)
+        //*********************
+        print(c11)
+        print(c_1)
+
         return c_0 == c00 and c_1 == c11
         
     else:
