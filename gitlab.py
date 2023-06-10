@@ -59,7 +59,7 @@ def rspeq_key_init_test(should_succeed):
     (g, h), sk = crs_gen()
 
     if should_succeed:
-        return h == sk * g
+        return h == sk ** g
     else:
         return h == g
 
@@ -68,8 +68,8 @@ def do_fast_test(should_succeed):
     # Generate a key pair
     pk0, _ = crs_gen()
     pk1, _ = crs_gen()
-    m0 = group.random(ZR) * pk0[0]
-    m1 = group.random(ZR) * pk0[1] if should_succeed else m0
+    m0 = group.random(ZR) ** pk0[0]
+    m1 = group.random(ZR) ** pk0[1] if should_succeed else m0
 
     r0 = group.random(ZR)
     r1 = group.random(ZR)
