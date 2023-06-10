@@ -1,7 +1,8 @@
-// Public Key Generation with verifiable randomness
+// Protocol RSPEQ
 
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+
 use rand_os::OsRng;
 
 // generating an ElGamal key, and sk
@@ -15,99 +16,62 @@ pub fn crs_gen()
 
     ((g,h),sk)
 
-}
-
-pub fn enc(pk: (RistrettoPoint,RistrettoPoint), m: RistrettoPoint)
-        -> (RistrettoPoint,RistrettoPoint){
-    let mut rng = OsRng::new().unwrap();
-    let r = Scalar::random(&mut rng);
-    (r*pk.1 + m, r*pk.0)
-
-}
-
+}     
 pub fn rando(pk: (RistrettoPoint,RistrettoPoint), c: (RistrettoPoint,RistrettoPoint), r:Scalar)
         -> (RistrettoPoint,RistrettoPoint){
     (c.0 + r*pk.1, c.1 + r*pk.0)
 
 }
 
-// picks a cipher, and sends it randomization
-pub fn flow_1 (pk: (RistrettoPoint,RistrettoPoint), c0: (RistrettoPoint,RistrettoPoint), c1: (RistrettoPoint,RistrettoPoint), b: bool)
-        -> ((RistrettoPoint,RistrettoPoint),Scalar) {
-    let mut rng = OsRng::new().unwrap();
-    let r = Scalar::random(&mut rng);
+// ElGamal encryption with randomness r
+pub fn rspeq_enc(pk: (RistrettoPoint,RistrettoPoint), m: RistrettoPoint, r:Scalar)
+        -> (RistrettoPoint,RistrettoPoint){
+    (r*pk.1 + m, r*pk.0)
+}
 
+//First move
+pub fn rspeq_flow_1 (pk0: (RistrettoPoint,RistrettoPoint),pk1: (RistrettoPoint,RistrettoPoint), c0: (RistrettoPoint,RistrettoPoint), c1: (RistrettoPoint,RistrettoPoint))
+        -> ((RistrettoPoint,RistrettoPoint),(RistrettoPoint,RistrettoPoint),RistrettoPoint,Scalar,Scalar) {
+    let mut rng = OsRng::new().unwrap();
+    let r_1 = Scalar::random(&mut rng);
+    let r_2 = Scalar::random(&mut rng);
+
+    let rm = RistrettoPoint::random(&mut rng);
+
+    (rando(pk0,(c0.0+rm,c0.1),r_1),rando(pk1,(c1.0+rm,c1.1),r_2),rm,r_1,r_2)
+}
+//Second move
+pub fn rspeq_flow_2 () -> bool {
+    return rand::random();
+}
+//Third move
+pub fn rspeq_flow_3 (b: bool, r0: Scalar,r_0: Scalar, r1: Scalar, r_1: Scalar) -> (Scalar,Scalar) {
     if b {
-        (rando(pk,c1,r),r)
+        (r_0,r_1)
     }
     else
     {
-        (rando(pk,c0,r),r)
+        (r0+r_0,r1+r_1)
     }
 }
-
-// Return True if c0 and cb encrypt the same plaintext
-pub fn multidec(sk: Scalar, c0: (RistrettoPoint,RistrettoPoint), cb: (RistrettoPoint,RistrettoPoint))
-        -> bool {
-    (c0.0 - cb.0) == sk*(c0.1 - cb.1)
+//Fourth move
+pub fn rspeq_flow_4 (b: bool, pk0: (RistrettoPoint,RistrettoPoint),pk1: (RistrettoPoint,RistrettoPoint),c0: (RistrettoPoint,RistrettoPoint),c_0: (RistrettoPoint,RistrettoPoint),c1: (RistrettoPoint,RistrettoPoint), c_1: (RistrettoPoint,RistrettoPoint),rx: Scalar, ry: Scalar, rm: RistrettoPoint) -> bool {
+    if b {
+        let c00 = rando(pk0,(c0.0+rm,c0.1),rx);
+        let c11 = rando(pk1,(c1.0+rm,c1.1),ry);
+        c_0 == c00 && c_1 == c11
     }
-
-// Checks if received a randomization of c0 and sends true iff not
-pub fn flow_2f (sk: Scalar, c0: (RistrettoPoint,RistrettoPoint), cb: (RistrettoPoint,RistrettoPoint))
-        -> bool {
-            !(multidec(sk,c0,cb))
-}
-
-// Does the answer match the challenge?
-pub fn flow_3f(b: bool, z:bool) -> bool
-{
-    b==z
-}
-
-// Checks if received a randomization of c0 and sends true iff not
-pub fn flow_2s (sk: Scalar, pk:(RistrettoPoint,RistrettoPoint), c0: (RistrettoPoint,RistrettoPoint), cb: (RistrettoPoint,RistrettoPoint))
-        -> (RistrettoPoint,bool,Scalar) {
-            let mut rng = OsRng::new().unwrap();
-            let s = Scalar::random(&mut rng);
-            let z =!(multidec(sk,c0,cb));
-            if z{
-                (s* pk.0,z,s)
-            }
-            else {
-                (s*pk.0 + pk.1,z,s)
-            }
-}
-
-pub fn flow_3s (_:RistrettoPoint, r:Scalar)
-        -> Scalar {
-            r
-}
-
-pub fn flow_4s(pk:(RistrettoPoint,RistrettoPoint), cz:(RistrettoPoint,RistrettoPoint), cb:(RistrettoPoint,RistrettoPoint),r: Scalar, s:Scalar)
-        -> Scalar {
-    if rando(pk, cz, r) == cb {
-        s
-    }
-    else {
-        r
+    else
+    {
+        c_0.0-(rx*pk0.1) == c_1.0-(ry*pk1.1)
     }
 }
-
-pub fn flow_ends(pk:(RistrettoPoint,RistrettoPoint), pedz: RistrettoPoint, b:bool, s:Scalar)
-        -> bool {
-    let f=pedz - s*pk.0;
-    (b && f==Scalar::zero()*pk.1) || (!b && f==Scalar::one()*pk.1)
-}
-
-// Hash
-
-
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    fn do_key_init_test(should_succeed: bool) -> bool{
+    fn rspeq_key_init_test(should_succeed: bool) -> bool{
         // Generate a key pair
         let ((g,h),sk) = crs_gen();
 
@@ -121,101 +85,58 @@ mod test {
         }
     }
 
-
     #[test]
-    fn ki_success() {
-        assert_eq!(do_key_init_test(true), true);
+    fn rspeq_ki_success() {
+        assert_eq!(rspeq_key_init_test(true), true);
     }
 
     #[test]
-    fn ki_fail() {
-        assert_eq!(do_key_init_test(false), false);
+    fn rspeq_ki_fail() {
+        assert_eq!(rspeq_key_init_test(false), false);
     }
 
     fn do_fast_test(should_succeed: bool) -> bool{
         // Generate a key pair
-        let (pk,sk) = crs_gen();
-        let m0= Scalar::zero() * pk.0;
-        let mut m1 = Scalar::one() * pk.1;
-        if !should_succeed {
+        let (pk0,_) = crs_gen();
+        let (pk1,_) = crs_gen();
+        let m0= Scalar::zero() * pk0.0;
+        let mut m1 = Scalar::one() * pk0.1;
+        if should_succeed {
             m1 = m0
         }
 
-        let c0 = enc(pk, m0);
-        let c1 = enc(pk, m1);
+        let mut rng = OsRng::new().unwrap();
+        let r0 = Scalar::random(&mut rng);
+        let r1 = Scalar::random(&mut rng);
+
+        let c0 = rspeq_enc(pk0, m0,r0);
+        let c1 = rspeq_enc(pk1, m1,r1);
 
         let mut bo = true;
         let mut i = 0;
         while i < 128 && bo {
-            let b = rand::random();
 
-            let (cb,_) = flow_1(pk,c0,c1,b);
+            let (c_0,c_1,rm,r_0,r_1) = rspeq_flow_1(pk0,pk1,c0,c1);
 
-            let z = flow_2f(sk,c0,cb);
+            let b = rspeq_flow_2();
 
-            bo=flow_3f(b,z);
+            let (rx,ry) = rspeq_flow_3(b,r0,r_0,r1,r_1);
+
+            bo = rspeq_flow_4(b,pk0,pk1,c0,c_0,c1,c_1,rx,ry,rm);
+
             i = i+1;
         }
         bo
     }
 
-
     #[test]
-    fn fast_success() {
+    fn success() {
         assert_eq!(do_fast_test(true), true);
     }
 
     #[test]
-    fn fast_fail() {
+    fn fail() {
         assert_eq!(do_fast_test(false), false);
     }
-
-    fn do_slow_test(should_succeed: bool) -> bool{
-        // Generate a key pair
-        let (pk,sk) = crs_gen();
-        let m0 = Scalar::zero() * pk.0;
-        let mut m1 = Scalar::one() * pk.1;
-        if !should_succeed {
-            m1 = m0
-        }
-
-        let c0 = enc(pk, m0);
-        let c1 = enc(pk, m1);
-
-        let mut bo = true;
-        let mut i = 0;
-        while i < 128 && bo {
-            let b = rand::random();
-
-            let (cb,r) = flow_1(pk,c0,c1,b);
-
-            let (pedz,z,s) = flow_2s(sk,pk,c0,cb);
-
-            let ra = flow_3s(pedz,r);
-
-            let mut cz = c0;
-            if z {
-                cz=c1;
-            }
-
-            let su = flow_4s(pk,cz,cb,ra,s);
-
-            bo=flow_ends(pk,pedz,b,su);
-            i = i+1;
-        }
-        bo
-    }
-
-
-    #[test]
-    fn slow_success() {
-        assert_eq!(do_slow_test(true), true);
-    }
-
-    #[test]
-    fn slow_fail() {
-        assert_eq!(do_slow_test(false), false);
-    }
-
-
 }
+
