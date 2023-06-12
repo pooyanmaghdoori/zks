@@ -69,10 +69,15 @@ def do_fast_test(should_succeed):
     bo = True
     i = 0
     while i < 128 and bo:
+        print("##################################")
         c_0, c_1, rm, r_0, r_1 = rspeq_flow_1(pk0, pk1, c0, c1)
+        print(i + " 1")
         b = rspeq_flow_2()
+        print(i + " 2")
         rx, ry = rspeq_flow_3(b, r0, r_0, r1, r_1)
+        print(i + " 3")
         bo = rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm)
+        print(i + " 4")
         i += 1
     return bo
 
