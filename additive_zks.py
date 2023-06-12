@@ -1,7 +1,6 @@
 from charm.toolbox.eccurve import prime192v2
 from charm.toolbox.ecgroup import ECGroup
 import random
-
 groupObj = ECGroup(prime192v2)
 
 
@@ -17,13 +16,13 @@ def crs_gen():
 # Add randomness to a point
 def rando(pk, c, r):
     group = groupObj
-    return (c[0] * r ** pk[1], c[1] * r ** pk[0])
+    return (c[0] * (r ** pk[1]), c[1] * (r ** pk[0]))
 
 
 # ElGamal encryption with randomness r
 def rspeq_enc(pk, m, r):
     group = groupObj
-    return (r ** pk[1] * m, r * pk[0])
+    return ((r ** pk[1]) * m, r ** pk[0])
 
 
 # First move of the protocol
@@ -45,7 +44,7 @@ def rspeq_flow_3(b, r0, r_0, r1, r_1):
     if b:
         return (r_0, r_1)
     else:
-        return (r0 ** r_0, r1 ** r_1)
+        return (r0 * r_0, r1 * r_1)
 
 
 # Fourth move of the protocol
@@ -71,8 +70,8 @@ def rspeq_key_init_test(should_succeed):
 
 
 def do_fast_test(should_succeed):
-    group = groupObj
     # Generate a key pair
+    group = groupObj
     pk0, _ = crs_gen()
     pk1, _ = crs_gen()
     m0 = group.random() ** pk0[0]
