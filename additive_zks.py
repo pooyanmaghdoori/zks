@@ -13,12 +13,10 @@ def crs_gen():
 
 # Add randomness to a point
 def rando(pk, c, r):
-    group = groupObj
     return (c[0] * (r ** pk[1]), c[1] * (r ** pk[0]))
 
 # ElGamal encryption with randomness r
 def rspeq_enc(pk, m, r):
-    group = groupObj
     return ((r ** pk[1]) * m, r ** pk[0])
 
 # First move of the protocol
@@ -42,7 +40,6 @@ def rspeq_flow_3(b, r0, r_0, r1, r_1):
 
 # Fourth move of the protocol
 def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
-    group = groupObj
     if b:
         c00 = rando(pk0, (c0[0] * rm, c0[1]), rx)
         c11 = rando(pk1, (c1[0] * rm, c1[1]), ry)
@@ -53,7 +50,6 @@ def rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm):
 
 # Test functions
 def rspeq_key_init_test(should_succeed):
-    group = groupObj
     (g, h), sk = crs_gen()
     if should_succeed:
         return h == sk ** g
