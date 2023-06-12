@@ -60,7 +60,6 @@ def rspeq_key_init_test(should_succeed):
     else:
         return h == g
 
-
 def do_fast_test(should_succeed):
     group = groupObj
     pk0, _ = crs_gen()
