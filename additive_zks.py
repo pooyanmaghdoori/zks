@@ -11,7 +11,6 @@ def crs_gen():
     g = group.random()
     sk = group.random()
     h = sk ** g
-
     return ((g, h), sk)
 
 
@@ -65,7 +64,6 @@ def rspeq_key_init_test(should_succeed):
     group = groupObj
     # Generate a key pair
     (g, h), sk = crs_gen()
-
     if should_succeed:
         return h == sk ** g
     else:
@@ -79,13 +77,10 @@ def do_fast_test(should_succeed):
     pk1, _ = crs_gen()
     m0 = group.random() ** pk0[0]
     m1 = group.random() ** pk0[1] if should_succeed else m0
-
     r0 = group.random()
     r1 = group.random()
-
     c0 = rspeq_enc(pk0, m0, r0)
     c1 = rspeq_enc(pk1, m1, r1)
-
     bo = True
     i = 0
     while i < 128 and bo:
@@ -94,7 +89,6 @@ def do_fast_test(should_succeed):
         rx, ry = rspeq_flow_3(b, r0, r_0, r1, r_1)
         bo = rspeq_flow_4(b, pk0, pk1, c0, c_0, c1, c_1, rx, ry, rm)
         i += 1
-
     return bo
 
 
